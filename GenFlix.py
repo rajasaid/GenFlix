@@ -85,7 +85,7 @@ class GenFlix:
         df = self.ratings_data_frame
         df_users = df.groupby("user_id").agg({
                     "user_age": "first",
-                    "IS_Action": "mean",    # average user perception
+                    "IS_Action": "mean",    
                     "IS_Comedy": "mean",
                     "IS_Drama": "mean",
                     "IS_Romance": "mean",
@@ -142,7 +142,7 @@ class GenFlix:
         df = self.ratings_data_frame
         df_movies = df.groupby("movie_title").agg({
                     "movie_year": "first",
-                    "IS_Action": "mean",    # average user perception
+                    "IS_Action": "mean",    
                     "IS_Comedy": "mean",
                     "IS_Drama": "mean",
                     "IS_Romance": "mean",
@@ -167,7 +167,8 @@ class GenFlix:
         df_movies["cluster"] = labels
 
         movie_cluster = df_movies[df_movies["movie_title"] == movie_title]["cluster"].iloc[0]
-        cluster_movies = df_movies[df_movies["cluster"] == movie_cluster]
+        cluster_movies = df_movies[df_movies["cluster"] == movie_cluster].sort_values("user_rating", ascending=False)
+        cluster_movies = cluster_movies[cluster_movies["movie_title"] != movie_title]
         if len(cluster_movies) <= n:
             if len(cluster_movies) == 0:
                 return []
