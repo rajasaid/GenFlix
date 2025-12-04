@@ -21,6 +21,16 @@ def main():
     print("\nGenerated Ratings:")
     for rating in genflix.ratings:
         print(rating)
-
+    
+    movies = genflix.recommend_movies_to_user(1, 5)
+    print("\nRecommended Movies for User ID 1:")
+    for movie in movies:
+        print(movie)
+    # get recommendations similar to Firm serve as example
+    print(genflix.movies[0])
+    movies_similar_to_firm = genflix.recommend_similar_movies(genflix.movies[0].title, 5)
+    print("\nMovies similar to 'Firm serve':")
+    for movie in movies_similar_to_firm:
+        print(movie)
 if __name__ == "__main__":
     main()

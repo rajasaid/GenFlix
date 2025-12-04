@@ -5,6 +5,8 @@ from User import User
 from Movie import Movie
 from Rating import Rating
 import pandas as pd
+from scipy.cluster.vq import whiten, kmeans, vq
+import numpy as np
 
 
 class GenFlix:
@@ -78,8 +80,102 @@ class GenFlix:
                 )
                 self.ratings.append(rating)
 
+    # Do Recommendation of movies to users based on Consumption of earlier movies using Kmeans algorithm
+    def recommend_movies_to_user(self, user_id, n=5):
+        df = self.ratings_data_frame
+        df_users = df.groupby("user_id").agg({
+                    "user_age": "first",
+                    "IS_Action": "mean",    
+                    "IS_Comedy": "mean",
+                    "IS_Drama": "mean",
+                    "IS_Romance": "mean",
+                    "IS_SciFi": "mean",
+                    "IS_Thriller": "mean",
+                    "IS_Adventure": "mean",
+                    "IS_Animation": "mean",
+                    "IS_Fantasy": "mean",
+                    "IS_Horror": "mean",
+                    "IS_Musical": "mean",
+                    "IS_Mystery": "mean",
+                    "IS_Western": "mean",
+                    "user_rating": "mean"
+                }).reset_index()
 
-    # start filling it's own data
+        X_users = df_users.to_numpy()
+        X_users_whitened = whiten(X_users)
+
+        centroids, dist = kmeans(X_users_whitened, 5) ## number of clusters = 5 as number of rate scale 1-5
+        labels, _ = vq(X_users_whitened, centroids)
+
+        df_users["cluster"] = labels
+        df_with_clusters = df.merge(
+            df_users["cluster"],
+            left_on="user_id",
+            right_index=True
+        )
+        top_movies_by_cluster = (
+            df_with_clusters
+            .groupby(["cluster", "movie_title"])["user_rating"]
+            .mean()
+            .reset_index()
+            )
+            # Find this user's cluster
+        cluster = df_users.loc[user_id, "cluster"]
+        
+        # Get that cluster's movies
+        cluster_movies = top_movies_by_cluster[
+            top_movies_by_cluster["cluster"] == cluster
+        ]
+        
+        # Sort by highest rating
+        recommended = (
+            cluster_movies
+            .sort_values("user_rating", ascending=False)
+            .head(n)
+        )
+        
+        return recommended["movie_title"].tolist()
+
+    
+    # do reccomendation of movies to users based on Movies Clustering using K-Means algorithm
+    def recommend_similar_movies(self, movie_title, n=5):
+        df = self.ratings_data_frame
+        df_movies = df.groupby("movie_title").agg({
+                    "movie_year": "first",
+                    "IS_Action": "mean",    
+                    "IS_Comedy": "mean",
+                    "IS_Drama": "mean",
+                    "IS_Romance": "mean",
+                    "IS_SciFi": "mean",
+                    "IS_Thriller": "mean",
+                    "IS_Adventure": "mean",
+                    "IS_Animation": "mean",
+                    "IS_Fantasy": "mean",
+                    "IS_Horror": "mean",
+                    "IS_Musical": "mean",
+                    "IS_Mystery": "mean",
+                    "IS_Western": "mean",
+                    "user_rating": "mean"
+                }).reset_index()
+
+        X_movies = df_movies.drop(columns=["movie_title"]).to_numpy()
+        X_movies_whitened = whiten(X_movies)
+
+        centroids, dist = kmeans(X_movies_whitened, 5)
+        labels, _ = vq(X_movies_whitened, centroids)
+
+        df_movies["cluster"] = labels
+
+        movie_cluster = df_movies[df_movies["movie_title"] == movie_title]["cluster"].iloc[0]
+        cluster_movies = df_movies[df_movies["cluster"] == movie_cluster].sort_values("user_rating", ascending=False)
+        cluster_movies = cluster_movies[cluster_movies["movie_title"] != movie_title]
+        if len(cluster_movies) <= n:
+            if len(cluster_movies) == 0:
+                return []
+            return cluster_movies["movie_title"].tolist()
+        return cluster_movies.sample(n)
+       
+    # start filling (Generating) own data (fake data) for GenFlix Application to be able to function
     def Start_Genflix(self):
         print("Starting GenFlix Data Generation...")
         print("Generating Movies...")
