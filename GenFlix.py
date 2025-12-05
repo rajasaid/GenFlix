@@ -9,6 +9,7 @@ import pandas as pd
 from scipy.cluster.vq import whiten, kmeans, vq
 import numpy as np
 import datetime
+import matplotlib.pyplot as plt
 
 
 class GenFlix:
@@ -269,3 +270,81 @@ class GenFlix:
 
             print("❌ No movie found with that title or number. Please try again.")
             return
+    
+    def plot_user_graphs(self, user_id, graph_type):
+        length = len(self.users)
+        if not (1 <= user_id <= length):
+            raise ValueError("❌ user ID out of range.")  
+        user = self.users[user_id - 1]
+        match graph_type:
+            case "ratings_over_time":
+                df = self.ratings_data_frame
+                user_ratings = df[df["user_id"] == user_id]
+                user_ratings = user_ratings.sort_values("date")
+                
+                plt.plot(user_ratings["date"], user_ratings["user_rating"], marker='o')
+                plt.title(f"Ratings Over Time for {user.name}")
+                plt.xlabel("Date")
+                plt.ylabel("Rating")
+                plt.ylim(0, 6)
+                plt.grid()
+                plt.show()
+                plt.pause(1)
+                plt.close()
+            case "genres_over_time":
+                df = self.ratings_data_frame
+                # all ratings for that user
+                df_user = df[df["user_id"] == user_id].copy()
+            
+                # use it as index for resampling
+                df_user = df_user.set_index("date")
+                # for each rating row, pick the genre with value 1
+                genre_cols = [col for col in df_user.columns if col.startswith("IS_")]
+                df_user["genre"] = df_user[genre_cols].idxmax(axis=1).str.replace("IS_", "")
+
+                plt.figure(figsize=(10, 4))
+                plt.scatter(df_user.index, df_user["genre"])
+                plt.yticks(rotation=45)
+                plt.xlabel("Date")
+                plt.title(f"Genres watched – user {user_id}")
+                plt.tight_layout()
+                plt.show()
+                plt.pause(1)
+                plt.close()
+            case _:
+                print("❌ Invalid graph type.")
+
+    def plot_distribution_graphs(self):
+        df = self.ratings_data_frame
+
+        genre_cols = [column for column in df.columns if column.startswith("IS_")]
+        genre_counts = df[genre_cols].sum()
+        genre_avg_rating = { column: df.loc[df[column] == 1, "user_rating"].mean() for column in genre_cols}
+
+        genres = [column.replace("IS_", "") for column in genre_cols]
+        counts = [genre_counts[column] for column in genre_cols]
+        avg_ratings = [genre_avg_rating[column] for column in genre_cols]
+
+        fig, ax1 = plt.subplots(figsize=(10, 6))
+        # bars - movies count grouped by genre
+        ax1.bar(genres, counts)
+        ax1.set_xlabel("Genre")
+        ax1.set_ylabel("Number of ratings (count)", color="black")
+        ax1.tick_params(axis="y", labelcolor="black")
+        ax1.set_xticks(range(len(genres)))
+        ax1.set_xticklabels(genres, rotation=45, ha="right")
+
+        # plot - genre average rating
+        ax2 = ax1.twinx()
+        ax2.plot(genres, avg_ratings, marker="o", color="red")
+        ax2.set_ylabel("Average rating", color="black")
+        ax2.tick_params(axis="y", labelcolor="black")
+        ax2.set_ylim(0, 5)  # если рейтинг 1–5
+
+        plt.title("Platform-wide genre distribution & average rating by genre")
+        plt.tight_layout()
+        plt.show()
+        plt.pause(1)
+        plt.close(fig)
+
+        return
