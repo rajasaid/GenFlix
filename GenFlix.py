@@ -8,6 +8,7 @@ from pprint import pprint
 import pandas as pd
 from scipy.cluster.vq import whiten, kmeans, vq
 import numpy as np
+import datetime
 
 
 class GenFlix:
@@ -64,6 +65,8 @@ class GenFlix:
                     "rating": user_rating
                 })
                 ratings_counter += 1
+                # generate a random date within the last 5 years
+                random_datetime = self.faker.date_time_between(start_date="-5y", end_date="now").date()
                 # create Rating object
                 rating = Rating(
                     user_name=user.name,
@@ -84,7 +87,8 @@ class GenFlix:
                     IS_SciFi=1 if 'SciFi' in movie.genres else 0,
                     IS_Thriller=1 if 'Thriller' in movie.genres else 0,
                     IS_Western=1 if 'Western' in movie.genres else 0,
-                    user_rating=user_rating
+                    user_rating=user_rating,
+                    date=random_datetime
                 )
                 self.ratings.append(rating)
 
@@ -197,6 +201,8 @@ class GenFlix:
         self.generate_ratings()
         print("Generating Ratings DataFrame...")
         self.ratings_data_frame = pd.DataFrame([r.__dict__ for r in self.ratings])
+        # Turn date column into datetime objects
+        self.ratings_data_frame['date'] = pd.to_datetime(self.ratings_data_frame['date'])
         print("Data Generation Completed.")
 
     def find_user_data(self):
