@@ -193,24 +193,31 @@ class GenFlix:
 
     # start filling (Generating) own data (fake data) for GenFlix Application to be able to function
     def Start_Genflix(self):
-        print("Starting GenFlix Data Generation...")
-        print("Generating Movies...")
+        print("""
+        ------------------------------------------------------------
+                        STARTING GENFLIX DATA GENERATION
+        ------------------------------------------------------------
+        """)
+
+        print("> Generating movies...")
         self.generate_movies()
-        print("Generating Users...")
+
+        print("> Generating users...")
         self.generate_users()
-        print("Generating Ratings...")
+
+        print("> Generating ratings...")
         self.generate_ratings()
-        print("Generating Ratings DataFrame...")
+
+        print("> Building ratings DataFrame...")
         self.ratings_data_frame = pd.DataFrame([r.__dict__ for r in self.ratings])
-        # Turn date column into datetime objects
         self.ratings_data_frame['date'] = pd.to_datetime(self.ratings_data_frame['date'])
-        print("Data Generation Completed.")
+
+        print("""
+        DATA GENERATION COMPLETED.
+        ------------------------------------------------------------
+        """)
 
     def find_user_data(self):
-        # Preview first 5 users
-        for i in range(5):
-            pprint(self.users[i])
-
         while True:
             user_input = input(f"Enter user name or user id (1–{len(self.users)}): ").strip()
 
@@ -219,15 +226,12 @@ class GenFlix:
                 user_id = int(user_input)
 
                 if 1 <= user_id <= len(self.users):
-                    user = self.users[user_id-1]
-                    print("\nUser found by ID:")
-                    user.print_details()
-                    from menu import user_menu
-                    user_menu(self, user_id)
-                    return user
+                    user = self.users[user_id - 1]
+                    from menu import print_user_info
+                    print_user_info(user)
+                    return user_id
                 else:
                     print("❌ ID out of range, try again.")
-
                     continue
 
             except ValueError:
@@ -236,17 +240,13 @@ class GenFlix:
 
             # user entered a name (string search)
             name_search = user_input.lower()
-
-            # exact name match
             matches = [user for user in self.users if user.name.lower() == name_search]
 
             if matches:
-                print("\nUser found by name:")
-                matches[0].print_details()
-                user_id = matches[0].user_id
-                from menu import user_menu
-                user_menu(self, user_id)
-                return matches[0]
+                user = matches[0]
+                from menu import print_user_info
+                print_user_info(user)
+                return user.user_id
 
             print("❌ No user found with that name or ID. Try again.")
 
@@ -261,15 +261,12 @@ class GenFlix:
             ]
 
             if matches:
-                print("\nMovie found by title:")
-                print(matches[0])
-                movie_title = matches[0].title
-                from menu import movie_menu
-                movie_menu(self, movie_title)
-                return matches[0]
+                movie = matches[0]
+                from menu import print_movie_info
+                print_movie_info(movie)
+                return movie.title
 
-            print("❌ No movie found with that title or number. Please try again.")
-            return
+            print("❌ No movie found with that title. Please try again.")
     
     def plot_user_graphs(self, user_id, graph_type):
         length = len(self.users)

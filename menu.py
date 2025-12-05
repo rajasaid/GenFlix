@@ -8,15 +8,26 @@ RATINGS_PER_USER = 5
 MAX_RECOMMENDATIONS = 10
 
 def initiate_genflix():
-    print('''*** Hi! Welcome to GenFlex! *** 
-    
-Here you can generate your own video platform and get an understanding of movie recommendation and statistics!
+    print("""
+    ============================================================
+                         *** WELCOME TO GENFLIX ***
+    ============================================================
 
-Let's get started!''')
+    Here you can generate your own video platform and explore
+    how movie recommendations and analytics are built.
+
+    Let's get started.
+
+
+    ------------------------------------------------------------
+    """)
 
     while True:
         try:
-            users_amount = int(input(f'Choose the amount of users on the platform (between {MIN_USERS} and {MAX_USERS}): '))
+            users_amount = int(input(
+                f"Choose the amount of users on the platform "
+                f"(between {MIN_USERS} and {MAX_USERS}): "
+            ))
             if not (MIN_USERS <= users_amount <= MAX_USERS):
                 raise ValueError("Number out of range")
 
@@ -37,6 +48,7 @@ Let's get started!''')
             ratings_amount = users_amount * RATINGS_PER_USER
             genflix = GenFlix(users_amount, movies_amount, ratings_amount)
             genflix.Start_Genflix()
+            input("\nPress ENTER to continue...")
             main_menu(genflix)
             break
         break
@@ -46,21 +58,34 @@ def main_menu(genflix):
     print("*** Now when it is on set, let’s dive into the data! ***")
     while True:
         print("""
-    What do you want to do:
-      Get user info            (u)
-      Get movie info           (m)
-      Look at graphs           (g)
-      Regenerate sample        (r)
-      Exit                     (x)
-    """)
+        ============================================================
+                                  MAIN MENU
+        ============================================================
+
+        What do you want to do:
+
+            [U]  GET USER INFO
+            [M]  GET MOVIE INFO
+            [G]  VIEW GRAPHS
+            [R]  REGENERATE SAMPLE
+            [X]  EXIT
+
+        ------------------------------------------------------------
+        """)
 
         user_choice = input("Choose an option: ").strip().lower()
 
         match user_choice:
             case "u":
-                genflix.find_user_data()
+                user_id = genflix.find_user_data()  # we will make this return the ID
+                if user_id:
+                    input("\nPress ENTER to continue...")
+                    user_menu(genflix, user_id)
             case "m":
-                genflix.find_movie_data()
+                movie_title = genflix.find_movie_data()  # returns a title
+                if movie_title:
+                    input("\nPress ENTER to continue...")
+                    movie_menu(genflix, movie_title)
             case "g":
                 try:
                     genflix.plot_distribution_graphs()
@@ -68,6 +93,7 @@ def main_menu(genflix):
                     print("❌ Error while plotting graph:", repr(e))
             case "r":
                 genflix.Start_Genflix()
+                input("\nPress ENTER to continue...")
             case "x":
                 print("Goodbye!")
                 break
@@ -75,21 +101,31 @@ def main_menu(genflix):
                 print("❌ Invalid option. Please try again.")
 
 def user_menu(genflix, user_id):
-    recommendations_amount = 0
     while True:
         print("""
-    What do you want to do:
-      Get user recommendations (r)
-      Show Trend of ratings    (t)
-      Show Trend of Genres     (g)           
-      Exit                     (x)
-    """)
+        ============================================================
+                                  USER MENU
+        ============================================================
+
+        What do you want to do:
+
+            [R]  USER RECOMMENDATIONS
+            [T]  TREND OF RATINGS
+            [G]  TREND OF GENRES
+            [X]  EXIT
+
+        ------------------------------------------------------------
+        """)
         user_choice = input("Choose an option: ").strip().lower()
         match user_choice:
             case "r":
                 recommendations_amount = get_rec_amount()
                 recommendation_list = genflix.recommend_movies_to_user(user_id, recommendations_amount)
-                print(f"Here are {recommendations_amount} top movies for {genflix.users[user_id-1].name}")
+
+                title = f"Top {recommendations_amount} Movies for {genflix.users[user_id - 1].name}"
+                print_recommendations(title, recommendation_list)
+
+                input("\nPress ENTER to continue...")
                 for i in range(len(recommendation_list)):
                     print(f"{i+1}. {recommendation_list[i]}")
             case "t":
@@ -111,16 +147,27 @@ def user_menu(genflix, user_id):
 def movie_menu(genflix, movie_title):
     while True:
         print("""
-    What do you want to do:
-      Get similar movies       (r)
-      Exit                     (x)
-    """)
+        ============================================================
+                                  MOVIE MENU
+        ============================================================
+
+        What do you want to do:
+
+            [R]  SIMILAR MOVIES
+            [X]  EXIT
+
+        ------------------------------------------------------------
+        """)
         user_choice = input("Choose an option: ").strip().lower()
         match user_choice:
             case "r":
                 recommendations_amount = get_rec_amount()
                 recommendation_list = genflix.recommend_similar_movies(movie_title, recommendations_amount)
-                print(f"Here are {recommendations_amount} similar movies for '{movie_title}'")
+
+                title = f"{recommendations_amount} Similar Movies for '{movie_title}'"
+                print_recommendations(title, recommendation_list)
+
+                input("\nPress ENTER to continue...")
                 for i in range(len(recommendation_list)):
                     print(f"{i + 1}. {recommendation_list[i]}")
 
@@ -141,3 +188,68 @@ def get_rec_amount():
             return recommendations
         except ValueError:
             print("❌ Invalid input. Please enter an integer within the correct range.")
+
+def print_user_info(user):
+    print(r"""
+┌────────────────────────────────────────────────────────────┐
+│                         USER DETAILS                       │
+└────────────────────────────────────────────────────────────┘
+""")
+
+    print(f"  ID:          {user.user_id}")
+    print(f"  Name:        {user.name}")
+    print(f"  Age:         {user.age}")
+
+    print("\n  Preferences:")
+    print("  ------------")
+    for genre in user.preferences:
+        print(f"   • {genre}")
+
+    print("\n  Watch History:")
+    print("  --------------")
+    if not user.watch_history:
+        print("   (no movies watched yet)")
+    else:
+        for entry in user.watch_history:
+            movie_title = entry["movie"]
+            rating = entry["rating"]
+            print(f"   • {movie_title} — rated {rating}/5")
+
+    print("\n──────────────────────────────────────────────────────────────\n")
+
+def print_movie_info(movie):
+    print(r"""
+┌────────────────────────────────────────────────────────────┐
+│                         MOVIE DETAILS                      │
+└────────────────────────────────────────────────────────────┘
+""")
+
+    print(f"  Title:       {movie.title}")
+    print(f"  Year:        {movie.year}")
+
+    print("\n  Genres:")
+    print("  --------")
+    for genre in movie.genres:
+        print(f"   • {genre}")
+
+    print("\n──────────────────────────────────────────────────────────────\n")
+
+def print_recommendations(title, rec_list):
+
+    # Determine final box width for PyCharm (looks best around 90)
+    BOX_WIDTH = 90
+
+    # Build top box line
+    print("\n" + "┌" + "─" * BOX_WIDTH + "┐")
+    print("│" + f"{title.upper():^{BOX_WIDTH}}" + "│")
+    print("└" + "─" * BOX_WIDTH + "┘\n")
+
+    # Print recommendation list
+    if not rec_list:
+        print("  No recommendations found.\n")
+        return
+
+    for i, movie in enumerate(rec_list, start=1):
+        print(f"   {i:>2}. {movie}")
+
+    print("\n" + "─" * (BOX_WIDTH + 2) + "\n")
