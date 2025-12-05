@@ -62,7 +62,10 @@ def main_menu(genflix):
             case "m":
                 genflix.find_movie_data()
             case "g":
-                print("Here are your graphs:")
+                try:
+                    genflix.plot_distribution_graphs()
+                except Exception as e:
+                    print("❌ Error while plotting graph:", repr(e))
             case "r":
                 genflix.Start_Genflix()
             case "x":
@@ -77,6 +80,8 @@ def user_menu(genflix, user_id):
         print("""
     What do you want to do:
       Get user recommendations (r)
+      Show Trend of ratings    (t)
+      Show Trend of Genres     (g)           
       Exit                     (x)
     """)
         user_choice = input("Choose an option: ").strip().lower()
@@ -87,6 +92,16 @@ def user_menu(genflix, user_id):
                 print(f"Here are {recommendations_amount} top movies for {genflix.users[user_id-1].name}")
                 for i in range(len(recommendation_list)):
                     print(f"{i+1}. {recommendation_list[i]}")
+            case "t":
+                try:
+                    genflix.plot_user_graphs(user_id, "ratings_over_time")        
+                except Exception as e:
+                    print("❌ Error while plotting graph:", repr(e))
+            case "g":
+                try:
+                    genflix.plot_user_graphs(user_id, "genres_over_time")
+                except Exception as e:
+                    print("❌ Error while plotting graph:", repr(e))
             case "x":
                 print("Goodbye!")
                 break
