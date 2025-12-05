@@ -4,6 +4,7 @@ from faker import Faker
 from User import User
 from Movie import Movie
 from Rating import Rating
+from pprint import pprint
 import pandas as pd
 from scipy.cluster.vq import whiten, kmeans, vq
 import numpy as np
@@ -23,10 +24,15 @@ class GenFlix:
         self.number_of_movies = number_of_movies
         self.number_of_ratings = number_of_ratings
 
+    def __str__(self):
+        return f"Genflix instance has {len(self.users)} users, {len(self.movies)} movies and {len(self.ratings)} ratings in total"
+
+    def __repr__(self):
+        return str(self)
 
     # Generate Users
     def generate_users(self):
-       
+        self.users = []
         for user_id in range(1, self.number_of_users + 1):
             name = self.faker.name()
             age = random.randint(10, 80)
@@ -36,6 +42,7 @@ class GenFlix:
 
     # Generate Movies
     def generate_movies(self):
+        self.movies = []
         for _ in range(self.number_of_movies):
             title = self.faker.sentence(nb_words=3).rstrip('.')
             year = random.randint(1950, 2024)
@@ -44,6 +51,7 @@ class GenFlix:
             self.movies.append(movie)
     # Generate Ratings - create Rating objects out of movie objects and user objects with the watch history
     def generate_ratings(self):
+        self.ratings = []
         ratings_counter = 0
         while ratings_counter < self.number_of_ratings:
             user = random.choice(self.users)
@@ -60,7 +68,7 @@ class GenFlix:
                 rating = Rating(
                     user_name=user.name,
                     user_age=user.age,
-                    user_id=user.id,
+                    user_id=user.user_id,
                     movie_title=movie.title,
                     movie_year=movie.year,
                     IS_Action=1 if 'Action' in movie.genres else 0,
@@ -99,11 +107,12 @@ class GenFlix:
                     "IS_Mystery": "mean",
                     "IS_Western": "mean",
                     "user_rating": "mean"
-                }).reset_index()
+                })
 
         X_users = df_users.to_numpy()
         X_users_whitened = whiten(X_users)
 
+        np.random.seed(45)  # certain results reproducibility
         centroids, dist = kmeans(X_users_whitened, 5) ## number of clusters = 5 as number of rate scale 1-5
         labels, _ = vq(X_users_whitened, centroids)
 
@@ -119,6 +128,7 @@ class GenFlix:
             .mean()
             .reset_index()
             )
+
             # Find this user's cluster
         cluster = df_users.loc[user_id, "cluster"]
         
@@ -137,7 +147,7 @@ class GenFlix:
         return recommended["movie_title"].tolist()
 
     
-    # do reccomendation of movies to users based on Movies Clustering using K-Means algorithm
+    # do recommendation of movies to users based on Movies Clustering using K-Means algorithm
     def recommend_similar_movies(self, movie_title, n=5):
         df = self.ratings_data_frame
         df_movies = df.groupby("movie_title").agg({
@@ -161,6 +171,7 @@ class GenFlix:
         X_movies = df_movies.drop(columns=["movie_title"]).to_numpy()
         X_movies_whitened = whiten(X_movies)
 
+        np.random.seed(42) # certain results reproducibility
         centroids, dist = kmeans(X_movies_whitened, 5)
         labels, _ = vq(X_movies_whitened, centroids)
 
@@ -173,8 +184,8 @@ class GenFlix:
             if len(cluster_movies) == 0:
                 return []
             return cluster_movies["movie_title"].tolist()
-        return cluster_movies.sample(n)
-       
+        return cluster_movies.head(n)["movie_title"].tolist()
+
     # start filling (Generating) own data (fake data) for GenFlix Application to be able to function
     def Start_Genflix(self):
         print("Starting GenFlix Data Generation...")
@@ -187,3 +198,68 @@ class GenFlix:
         print("Generating Ratings DataFrame...")
         self.ratings_data_frame = pd.DataFrame([r.__dict__ for r in self.ratings])
         print("Data Generation Completed.")
+
+    def find_user_data(self):
+        # Preview first 5 users
+        for i in range(5):
+            pprint(self.users[i])
+
+        while True:
+            user_input = input(f"Enter user name or user id (1–{len(self.users)}): ").strip()
+
+            # user entered an integer (ID search)
+            try:
+                user_id = int(user_input)
+
+                if 1 <= user_id <= len(self.users):
+                    user = self.users[user_id-1]
+                    print("\nUser found by ID:")
+                    user.print_details()
+                    from menu import user_menu
+                    user_menu(self, user_id)
+                    return user
+                else:
+                    print("❌ ID out of range, try again.")
+
+                    continue
+
+            except ValueError:
+                # not an integer → treat as name
+                pass
+
+            # user entered a name (string search)
+            name_search = user_input.lower()
+
+            # exact name match
+            matches = [user for user in self.users if user.name.lower() == name_search]
+
+            if matches:
+                print("\nUser found by name:")
+                matches[0].print_details()
+                user_id = matches[0].user_id
+                from menu import user_menu
+                user_menu(self, user_id)
+                return matches[0]
+
+            print("❌ No user found with that name or ID. Try again.")
+
+    def find_movie_data(self):
+        while True:
+            movie_input = input("\nEnter movie title: ").strip()
+            query = movie_input.lower()
+
+            matches = [
+                movie for movie in self.movies
+                if movie.title.lower() == query
+            ]
+
+            if matches:
+                print("\nMovie found by title:")
+                print(matches[0])
+                movie_title = matches[0].title
+                from menu import movie_menu
+                movie_menu(self, movie_title)
+                return matches[0]
+
+            print("❌ No movie found with that title or number. Please try again.")
+            return
