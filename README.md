@@ -1,9 +1,7 @@
 ## 1. Project Title
 #### • GenFlix.   
 ## 2. Short Description
-#### • GenFlix is an AI based movie recommendation system designed to
-#### Generate Random custom data of users, movies and ratings, then apply AI to give recommendations to registered users based on their
-#### preferences and consumption history history.   
+#### GenFlix is an AI based movie recommendation system designed to Generate Random custom data of users, movies and ratings, then apply AI to give recommendations to registered users based on their preferences and consumption history history.   
 ## 3. Tech Stack
 #### • Mainly Python.  
 ## 4. How to Run the Project     
