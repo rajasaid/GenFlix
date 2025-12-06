@@ -10,6 +10,7 @@ from scipy.cluster.vq import whiten, kmeans, vq
 import numpy as np
 import datetime
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 
 class GenFlix:
@@ -278,10 +279,11 @@ class GenFlix:
                 df = self.ratings_data_frame
                 user_ratings = df[df["user_id"] == user_id]
                 user_ratings = user_ratings.sort_values("date")
-                
+                plt.figure(figsize=(12, 6))
                 plt.plot(user_ratings["date"], user_ratings["user_rating"], marker='o')
                 plt.title(f"Ratings Over Time for {user.name}")
                 plt.xlabel("Date")
+                plt.xticks(rotation=45)
                 plt.ylabel("Rating")
                 plt.ylim(0, 6)
                 plt.grid()
@@ -290,20 +292,43 @@ class GenFlix:
                 plt.close()
             case "genres_over_time":
                 df = self.ratings_data_frame
-                # all ratings for that user
+                # choose rows for the user only
                 df_user = df[df["user_id"] == user_id].copy()
-            
-                # use it as index for resampling
-                df_user = df_user.set_index("date")
-                # for each rating row, pick the genre with value 1
-                genre_cols = [col for col in df_user.columns if col.startswith("IS_")]
-                df_user["genre"] = df_user[genre_cols].idxmax(axis=1).str.replace("IS_", "")
+                # sum = how many movies of each genre watched on that date
+                genre_cols = [column for column in df_user.columns if column.startswith("IS_")]
+                # --- GROUP BY Year ---
+                df_user_year = (
+                    df_user
+                    .groupby(pd.Grouper(key="date", freq="Y"))[genre_cols]
+                    .sum()        # sum = how many movies of each genre watched that year
+                )
+                # convert to long format for easier plotting
+                df_long = df_user_year.reset_index().melt(
+                    id_vars="date",
+                    value_vars=genre_cols,
+                    var_name="genre",
+                    value_name="count"
+                )
 
-                plt.figure(figsize=(10, 4))
-                plt.scatter(df_user.index, df_user["genre"])
-                plt.yticks(rotation=45)
-                plt.xlabel("Date")
-                plt.title(f"Genres watched – user {user_id}")
+                # drop zeros (days where genre not watched)
+                df_long = df_long[df_long["count"] > 0]
+
+                # nicer labels
+                df_long["genre"] = df_long["genre"].str.replace("IS_", "")
+                plt.figure(figsize=(12, 6))
+
+                sns.scatterplot(
+                    data=df_long,
+                    x="date",
+                    y="genre",
+                    hue="count",
+                    size="count",
+                    palette="viridis",
+                    sizes=(20, 200)
+                )
+
+                plt.title(f"Genres watched over time Grouped by Year for User {user_id}")
+                plt.xticks(rotation=45)
                 plt.tight_layout()
                 plt.show()
                 plt.pause(1)
