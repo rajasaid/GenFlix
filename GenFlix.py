@@ -279,7 +279,7 @@ class GenFlix:
                 df = self.ratings_data_frame
                 user_ratings = df[df["user_id"] == user_id]
                 user_ratings = user_ratings.sort_values("date")
-                
+                plt.figure(figsize=(12, 6))
                 plt.plot(user_ratings["date"], user_ratings["user_rating"], marker='o')
                 plt.title(f"Ratings Over Time for {user.name}")
                 plt.xlabel("Date")
