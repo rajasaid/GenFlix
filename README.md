@@ -1,20 +1,20 @@
 ## 1. Project Title
-• GenFlix.   
+#### • GenFlix.   
 ## 2. Short Description
-• GenFlix is an AI based movie recommendation system designed to
-help give recommendations to registered users based on their
-preferences and rating history so anyone can enjoy watching movies
-he/she loves.   
+#### • GenFlix is an AI based movie recommendation system designed to
+#### Generate Random custom data of users, movies and ratings, then apply AI to give recommendations to registered users based on their
+#### preferences and consumption history history.   
 ## 3. Tech Stack
-• Mainly Python.  
+#### • Mainly Python.  
 ## 4. How to Run the Project     
-◦ Simply run the main.py (main file). 
+#### ◦ Simply run the main.py (main file). 
 ## 5. Main Features
-• CLI based by design, no fancy UI.  
-• Build a new GenFLix Object and call it’s method to:    
-    1. Recommend a movie for an existing user.    
-    2. Plot visualizations.     
-    3. Gain statistical insights about the data.     
+### • CLI based by design, no fancy UI.  
+### • Main Menu will offer to:    
+####    1. display users and user specific menu 
+####    2. display movie and movie specific menu 
+####    3. Plot Global visualization.     
+####    4. Restart Genflix Generation.     
 ## 6. Team Members.     
 • Raja Said - Co Author.  
 • Aleksey Shapovalov - Co Author.   
