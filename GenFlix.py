@@ -4,57 +4,55 @@ from faker import Faker
 from User import User
 from Movie import Movie
 from Rating import Rating
-from pprint import pprint
 import pandas as pd
-from scipy.cluster.vq import whiten, kmeans, vq
-import numpy as np
-import datetime
-import matplotlib.pyplot as plt
-import seaborn as sns
+from dataclasses import dataclass, field
 
 
+@dataclass
 class GenFlix:
-    flix_genres = ['Action', 'Adventure', 'Animation', 'Comedy', 'Drama', 'Fantasy',
-                  'Horror', 'Musical', 'Mystery', 'Romance', 'SciFi', 'Thriller', 'Western']
-     
-    def __init__(self, number_of_users=100, number_of_movies=200, number_of_ratings=1000):
-        self.users = []
-        self.movies = []
-        self.ratings_data_frame = None
-        self.ratings = []
-        self.faker = Faker()
-        self.number_of_users = number_of_users
-        self.number_of_movies = number_of_movies
-        self.number_of_ratings = number_of_ratings
+    flix_genres: list[str] = field(default_factory=lambda: 
+                  ['Action', 'Adventure', 'Animation', 'Comedy', 'Drama', 'Fantasy',
+                  'Horror', 'Musical', 'Mystery', 'Romance', 'SciFi', 'Thriller', 'Western'], init=False)
+    number_of_movies: int = 200
+    number_of_users: int = 100
+    number_of_ratings: int = 1000
+    users: list[User] = field(default_factory=list, init=False)
+    movies: list[Movie] = field(default_factory=list, init=False)
+    ratings_data_frame: pd.DataFrame = field(default=None, init=False)
+    ratings: list[Rating] = field(default_factory=list, init=False)
+    faker: Faker = field(default_factory=Faker, init=False)
+    restarted: bool = field(default=False, init=False)
+    
+    def __post_init__(self):
+        self.restart_genflix()
+        
 
     def __str__(self):
         return f"Genflix instance has {len(self.users)} users, {len(self.movies)} movies and {len(self.ratings)} ratings in total"
 
-    def __repr__(self):
-        return str(self)
-
     # Generate Users
-    def generate_users(self):
-        self.users = []
+    def _generate_users(self) -> None:
+        self.users = []       # list of User objects we start with empty list in case we restart GenFlix
         for user_id in range(1, self.number_of_users + 1):
             name = self.faker.name()
             age = random.randint(10, 80)
-            preferences = random.sample(GenFlix.flix_genres, k=random.randint(1, 5))
+            preferences = random.sample(self.flix_genres, k=random.randint(1, 5))
             user = User(user_id, name, age, preferences)
             self.users.append(user)
 
     # Generate Movies
-    def generate_movies(self):
-        self.movies = []
+    def _generate_movies(self) -> None:
+        self.movies = []      # list of Movie objects we start with empty list in case we restart GenFlix
         for _ in range(self.number_of_movies):
             title = self.faker.sentence(nb_words=3).rstrip('.')
             year = random.randint(1950, 2024)
-            genres = random.sample(self.flix_genres, k=random.randint(1, 3))
+            genres = set(random.sample(self.flix_genres, k=random.randint(1, 3)))
             movie = Movie(title, genres, year)
             self.movies.append(movie)
+
     # Generate Ratings - create Rating objects out of movie objects and user objects with the watch history
-    def generate_ratings(self):
-        self.ratings = []
+    def _generate_ratings(self):
+        self.ratings = []     # list of Rating objects we start with empty list in case we restart GenFlix
         ratings_counter = 0
         while ratings_counter < self.number_of_ratings:
             user = random.choice(self.users)
@@ -71,129 +69,45 @@ class GenFlix:
                 random_datetime = self.faker.date_time_between(start_date="-5y", end_date="now").date()
                 # create Rating object
                 rating = Rating(
-                    user_name=user.name,
-                    user_age=user.age,
-                    user_id=user.user_id,
-                    movie_title=movie.title,
-                    movie_year=movie.year,
-                    IS_Action=1 if 'Action' in movie.genres else 0,
-                    IS_Adventure=1 if 'Adventure' in movie.genres else 0,
-                    IS_Animation=1 if 'Animation' in movie.genres else 0,
-                    IS_Comedy=1 if 'Comedy' in movie.genres else 0,
-                    IS_Drama=1 if 'Drama' in movie.genres else 0,
-                    IS_Fantasy=1 if 'Fantasy' in movie.genres else 0,
-                    IS_Horror=1 if 'Horror' in movie.genres else 0,
-                    IS_Musical=1 if 'Musical' in movie.genres else 0,
-                    IS_Mystery=1 if 'Mystery' in movie.genres else 0,
-                    IS_Romance=1 if 'Romance' in movie.genres else 0,
-                    IS_SciFi=1 if 'SciFi' in movie.genres else 0,
-                    IS_Thriller=1 if 'Thriller' in movie.genres else 0,
-                    IS_Western=1 if 'Western' in movie.genres else 0,
+                    user= user,
+                    movie= movie,
                     user_rating=user_rating,
-                    date=random_datetime
+                    date=random_datetime,
+                    genres=set(movie.genres)
                 )
                 self.ratings.append(rating)
 
-    # Do Recommendation of movies to users based on Consumption of earlier movies using Kmeans algorithm
-    def recommend_movies_to_user(self, user_id, n=5):
-        df = self.ratings_data_frame
-        df_users = df.groupby("user_id").agg({
-                    "user_age": "first",
-                    "IS_Action": "mean",    
-                    "IS_Comedy": "mean",
-                    "IS_Drama": "mean",
-                    "IS_Romance": "mean",
-                    "IS_SciFi": "mean",
-                    "IS_Thriller": "mean",
-                    "IS_Adventure": "mean",
-                    "IS_Animation": "mean",
-                    "IS_Fantasy": "mean",
-                    "IS_Horror": "mean",
-                    "IS_Musical": "mean",
-                    "IS_Mystery": "mean",
-                    "IS_Western": "mean",
-                    "user_rating": "mean"
-                })
-
-        X_users = df_users.to_numpy()
-        X_users_whitened = whiten(X_users)
-
-        np.random.seed(45)  # certain results reproducibility
-        centroids, dist = kmeans(X_users_whitened, 5) ## number of clusters = 5 as number of rate scale 1-5
-        labels, _ = vq(X_users_whitened, centroids)
-
-        df_users["cluster"] = labels
-        df_with_clusters = df.merge(
-            df_users["cluster"],
-            left_on="user_id",
-            right_index=True
-        )
-        top_movies_by_cluster = (
-            df_with_clusters
-            .groupby(["cluster", "movie_title"])["user_rating"]
-            .mean()
-            .reset_index()
-            )
-
-            # Find this user's cluster
-        cluster = df_users.loc[user_id, "cluster"]
-        
-        # Get that cluster's movies
-        cluster_movies = top_movies_by_cluster[
-            top_movies_by_cluster["cluster"] == cluster
-        ]
-        
-        # Sort by highest rating
-        recommended = (
-            cluster_movies
-            .sort_values("user_rating", ascending=False)
-            .head(n)
-        )
-        
-        return recommended["movie_title"].tolist()
+    # Generate the dataframe out of ratings for easier data manipulation and analysis
+    def _generate_dataframe(self)  -> None:
+       
+        # We need to flatten user and movie attributes into the DataFrame
+        for r in self.ratings:
+            setattr(r, "user_id", r.user.user_id)
+            setattr(r, "user_name", r.user.name)
+            setattr(r, "user_age", r.user.age)
+            setattr(r, "movie_title", r.movie.title)
+            setattr(r, "movie_year", r.movie.year)
+        df =  pd.DataFrame([r.__dict__ for r in self.ratings])
+        # onehotencoding of genres
+        for genre in self.flix_genres:
+            df[f"IS_{genre}"] = df['genres'].apply(lambda genres: 1 if genre in genres else 0)
+        self.ratings_data_frame = df.drop(columns=['user', 'movie', 'genres'])
+        # turning date column into datetime type
+        self.ratings_data_frame['date'] = pd.to_datetime(self.ratings_data_frame['date'])
+        # Now dataframe is ready for manipulation and analysis
+    
+    # method for returning data frame
+    def get_ratings_dataframe(self) -> pd.DataFrame:
+        if self.ratings_data_frame is None or self.restarted is True:
+            self._generate_dataframe()
+            if self.restarted is True:
+                self.restarted = False
+        return self.ratings_data_frame
+    
 
     
-    # do recommendation of movies to users based on Movies Clustering using K-Means algorithm
-    def recommend_similar_movies(self, movie_title, n=5):
-        df = self.ratings_data_frame
-        df_movies = df.groupby("movie_title").agg({
-                    "movie_year": "first",
-                    "IS_Action": "mean",    
-                    "IS_Comedy": "mean",
-                    "IS_Drama": "mean",
-                    "IS_Romance": "mean",
-                    "IS_SciFi": "mean",
-                    "IS_Thriller": "mean",
-                    "IS_Adventure": "mean",
-                    "IS_Animation": "mean",
-                    "IS_Fantasy": "mean",
-                    "IS_Horror": "mean",
-                    "IS_Musical": "mean",
-                    "IS_Mystery": "mean",
-                    "IS_Western": "mean",
-                    "user_rating": "mean"
-                }).reset_index()
-
-        X_movies = df_movies.drop(columns=["movie_title"]).to_numpy()
-        X_movies_whitened = whiten(X_movies)
-
-        np.random.seed(42) # certain results reproducibility
-        centroids, dist = kmeans(X_movies_whitened, 5)
-        labels, _ = vq(X_movies_whitened, centroids)
-
-        df_movies["cluster"] = labels
-
-        movie_cluster = df_movies[df_movies["movie_title"] == movie_title]["cluster"].iloc[0]
-        cluster_movies = df_movies[df_movies["cluster"] == movie_cluster].sort_values("user_rating", ascending=False)
-        cluster_movies = cluster_movies[cluster_movies["movie_title"] != movie_title]
-        if len(cluster_movies) <= n:
-            if len(cluster_movies) == 0:
-                return []
-            return cluster_movies["movie_title"].tolist()
-        return cluster_movies.head(n)["movie_title"].tolist()
-
     # start filling (Generating) own data (fake data) for GenFlix Application to be able to function
-    def Start_Genflix(self):
+    def restart_genflix(self):
         print("""
         ------------------------------------------------------------
                         STARTING GENFLIX DATA GENERATION
@@ -201,172 +115,21 @@ class GenFlix:
         """)
 
         print("> Generating movies...")
-        self.generate_movies()
+        self._generate_movies()
 
         print("> Generating users...")
-        self.generate_users()
+        self._generate_users()
 
         print("> Generating ratings...")
-        self.generate_ratings()
-
-        print("> Building ratings DataFrame...")
-        self.ratings_data_frame = pd.DataFrame([r.__dict__ for r in self.ratings])
-        self.ratings_data_frame['date'] = pd.to_datetime(self.ratings_data_frame['date'])
+        self._generate_ratings()
+        self.restarted = True
 
         print("""
         DATA GENERATION COMPLETED.
         ------------------------------------------------------------
         """)
 
-    def find_user_data(self):
-        while True:
-            user_input = input(f"Enter user name or user id (1–{len(self.users)}): ").strip()
-
-            # user entered an integer (ID search)
-            try:
-                user_id = int(user_input)
-
-                if 1 <= user_id <= len(self.users):
-                    user = self.users[user_id - 1]
-                    from menu import print_user_info
-                    print_user_info(user)
-                    return user_id
-                else:
-                    print("❌ ID out of range, try again.")
-                    continue
-
-            except ValueError:
-                # not an integer → treat as name
-                pass
-
-            # user entered a name (string search)
-            name_search = user_input.lower()
-            matches = [user for user in self.users if user.name.lower() == name_search]
-
-            if matches:
-                user = matches[0]
-                from menu import print_user_info
-                print_user_info(user)
-                return user.user_id
-
-            print("❌ No user found with that name or ID. Try again.")
-
-    def find_movie_data(self):
-        while True:
-            movie_input = input("\nEnter movie title: ").strip()
-            query = movie_input.lower()
-
-            matches = [
-                movie for movie in self.movies
-                if movie.title.lower() == query
-            ]
-
-            if matches:
-                movie = matches[0]
-                from menu import print_movie_info
-                print_movie_info(movie)
-                return movie.title
-
-            print("❌ No movie found with that title. Please try again.")
     
-    def plot_user_graphs(self, user_id, graph_type):
-        length = len(self.users)
-        if not (1 <= user_id <= length):
-            raise ValueError("❌ user ID out of range.")  
-        user = self.users[user_id - 1]
-        match graph_type:
-            case "ratings_over_time":
-                df = self.ratings_data_frame
-                user_ratings = df[df["user_id"] == user_id]
-                user_ratings = user_ratings.sort_values("date")
-                plt.figure(figsize=(12, 6))
-                plt.plot(user_ratings["date"], user_ratings["user_rating"], marker='o')
-                plt.title(f"Ratings Over Time for {user.name}")
-                plt.xlabel("Date")
-                plt.xticks(rotation=45)
-                plt.ylabel("Rating")
-                plt.ylim(0, 6)
-                plt.grid()
-                plt.show()
-                plt.pause(1)
-                plt.close()
-            case "genres_over_time":
-                df = self.ratings_data_frame
-                # choose rows for the user only
-                df_user = df[df["user_id"] == user_id].copy()
-                # sum = how many movies of each genre watched on that date
-                genre_cols = [column for column in df_user.columns if column.startswith("IS_")]
-                # --- GROUP BY Year ---
-                df_user_year = (
-                    df_user
-                    .groupby(pd.Grouper(key="date", freq="Y"))[genre_cols]
-                    .sum()        # sum = how many movies of each genre watched that year
-                )
-                # convert to long format for easier plotting
-                df_long = df_user_year.reset_index().melt(
-                    id_vars="date",
-                    value_vars=genre_cols,
-                    var_name="genre",
-                    value_name="count"
-                )
 
-                # drop zeros (days where genre not watched)
-                df_long = df_long[df_long["count"] > 0]
-
-                # nicer labels
-                df_long["genre"] = df_long["genre"].str.replace("IS_", "")
-                plt.figure(figsize=(12, 6))
-
-                sns.scatterplot(
-                    data=df_long,
-                    x="date",
-                    y="genre",
-                    hue="count",
-                    size="count",
-                    palette="viridis",
-                    sizes=(20, 200)
-                )
-
-                plt.title(f"Genres watched over time Grouped by Year for User {user_id}")
-                plt.xticks(rotation=45)
-                plt.tight_layout()
-                plt.show()
-                plt.pause(1)
-                plt.close()
-            case _:
-                print("❌ Invalid graph type.")
-
-    def plot_distribution_graphs(self):
-        df = self.ratings_data_frame
-
-        genre_cols = [column for column in df.columns if column.startswith("IS_")]
-        genre_counts = df[genre_cols].sum()
-        genre_avg_rating = { column: df.loc[df[column] == 1, "user_rating"].mean() for column in genre_cols}
-
-        genres = [column.replace("IS_", "") for column in genre_cols]
-        counts = [genre_counts[column] for column in genre_cols]
-        avg_ratings = [genre_avg_rating[column] for column in genre_cols]
-
-        fig, ax1 = plt.subplots(figsize=(10, 6))
-        # bars - movies count grouped by genre
-        ax1.bar(genres, counts)
-        ax1.set_xlabel("Genre")
-        ax1.set_ylabel("Number of ratings (count)", color="black")
-        ax1.tick_params(axis="y", labelcolor="black")
-        ax1.set_xticks(range(len(genres)))
-        ax1.set_xticklabels(genres, rotation=45, ha="right")
-
-        # plot - genre average rating
-        ax2 = ax1.twinx()
-        ax2.plot(genres, avg_ratings, marker="o", color="red")
-        ax2.set_ylabel("Average rating", color="black")
-        ax2.tick_params(axis="y", labelcolor="black")
-        ax2.set_ylim(0, 5)  # если рейтинг 1–5
-
-        plt.title("Platform-wide genre distribution & average rating by genre")
-        plt.tight_layout()
-        plt.show()
-        plt.pause(1)
-        plt.close(fig)
-
-        return
+   
+    
