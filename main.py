@@ -1,5 +1,4 @@
 ## test and do the application of GenFlix
-from GenFlix import GenFlix
 from menu import initiate_genflix
 
 def main():

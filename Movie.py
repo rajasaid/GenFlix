@@ -1,17 +1,15 @@
 ## This is Movie class Python file
+from dataclasses import dataclass, field
 
+@dataclass
 class Movie:
-    def __init__(self, title, genres, year):
-        self.title = title
-        self.genres = genres   ## list of the genres of the Movie
-        self.year = year
-        ## TBD think of average rating for the movie. 
-    
+    title: str
+    genres: set[str] = field(default_factory=set)
+    year: int = 2020
+
     def __str__(self):
         return f"Movie '{self.title}' - Year {self.year}\n Genres: {', '.join(self.genres)}"
     
-    def __repr__(self):
-        return str(self)
     
 
 

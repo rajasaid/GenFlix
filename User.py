@@ -1,20 +1,18 @@
 ## User Class for GenFlix Application
 from pprint import pprint 
+from dataclasses import dataclass, field
 
+@dataclass
 class User:
-    def __init__(self, user_id, name, age, preferences):
-        self.user_id = user_id
-        self.name = name
-        self.age = age
-        self.preferences = preferences ## list of Genres that the user prefers to watch
-        self.watch_history = []
-    
+    user_id: int
+    name: str
+    age: int
+    preferences: list[str] = field(default_factory=list)
+    watch_history: list[dict] = field(default_factory=list, init=False) # list of dicts with 'movie' and 'rating' keys
+
     def __str__(self):
         return f"User: {self.name}, ID: {self.user_id}"
 
-    def __repr__(self):
-        return str(self)
-    
     def print_details(self):
         print(self)
         print("Preferences: ")

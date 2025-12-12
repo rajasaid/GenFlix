@@ -1,4 +1,10 @@
 from GenFlix import GenFlix
+from GenFlixService import GenFlixService
+from User import User
+from Movie import Movie
+from GraphGenerator import GraphGenerator
+from UserGraphGenerator import UserGraphGenerator
+
 
 MIN_MOVIES = 100
 MAX_MOVIES = 200
@@ -47,14 +53,14 @@ def initiate_genflix():
 
             ratings_amount = users_amount * RATINGS_PER_USER
             genflix = GenFlix(users_amount, movies_amount, ratings_amount)
-            genflix.Start_Genflix()
+            genflix_service = GenFlixService(genflix)
             input("\nPress ENTER to continue...")
-            main_menu(genflix)
+            main_menu(genflix_service)
             break
         break
 
 
-def main_menu(genflix):
+def main_menu(genflix_service: GenFlixService)  -> None:
     print("*** Now when it is on set, let’s dive into the data! ***")
     while True:
         print("""
@@ -77,22 +83,24 @@ def main_menu(genflix):
 
         match user_choice:
             case "u":
-                user_id = genflix.find_user_data()  # we will make this return the ID
+                user_id = genflix_service.find_user_data()  # we will make this return the ID
                 if user_id:
                     input("\nPress ENTER to continue...")
-                    user_menu(genflix, user_id)
+                    user_menu(genflix_service, user_id)
             case "m":
-                movie_title = genflix.find_movie_data()  # returns a title
+                movie_title = genflix_service.find_movie_data()  # returns a title
                 if movie_title:
                     input("\nPress ENTER to continue...")
-                    movie_menu(genflix, movie_title)
+                    movie_menu(genflix_service, movie_title)
             case "g":
                 try:
-                    genflix.plot_distribution_graphs()
+                    df = genflix_service.get_ratings_dataframe()
+                    graph_gen = GraphGenerator(df)
+                    graph_gen.plot_main_graph()
                 except Exception as e:
                     print("❌ Error while plotting graph:", repr(e))
             case "r":
-                genflix.Start_Genflix()
+                genflix_service.restart()
                 input("\nPress ENTER to continue...")
             case "x":
                 print("Goodbye!")
@@ -100,7 +108,7 @@ def main_menu(genflix):
             case _:
                 print("❌ Invalid option. Please try again.")
 
-def user_menu(genflix, user_id):
+def user_menu(genflix_service:GenFlixService, user_id: int)  -> None:
     while True:
         print("""
         ============================================================
@@ -119,23 +127,34 @@ def user_menu(genflix, user_id):
         user_choice = input("Choose an option: ").strip().lower()
         match user_choice:
             case "r":
-                recommendations_amount = get_rec_amount()
-                recommendation_list = genflix.recommend_movies_to_user(user_id, recommendations_amount)
+                try:
+                    recommendations_amount = get_rec_amount()
+                    recommendation_list = genflix_service.recommend_movies_to_user(user_id, recommendations_amount)
 
-                title = f"Top {recommendations_amount} Movies for {genflix.users[user_id - 1].name}"
-                print_recommendations(title, recommendation_list)
+                    title = f"Top {recommendations_amount} Movies for {genflix_service.get_user_name(user_id)}"
+                    print_recommendations(title, recommendation_list)
 
-                input("\nPress ENTER to continue...")
-                for i in range(len(recommendation_list)):
-                    print(f"{i+1}. {recommendation_list[i]}")
+                    input("\nPress ENTER to continue...")
+                    for i in range(len(recommendation_list)):
+                        print(f"{i+1}. {recommendation_list[i]}")
+                except Exception as e:
+                    print("❌ Error while getting recommendations:", repr(e))        
             case "t":
                 try:
-                    genflix.plot_user_graphs(user_id, "ratings_over_time")        
+                    user_graph_service = UserGraphGenerator(
+                        genflix_service.get_ratings_dataframe(),
+                        genflix_service.genflix.users[user_id - 1]
+                    )
+                    user_graph_service.plot_user_graph(user_id, "ratings_over_time")      
                 except Exception as e:
                     print("❌ Error while plotting graph:", repr(e))
             case "g":
                 try:
-                    genflix.plot_user_graphs(user_id, "genres_over_time")
+                    user_graph_service = UserGraphGenerator(
+                        genflix_service.get_ratings_dataframe(),
+                        genflix_service.genflix.users[user_id - 1]
+                    )
+                    user_graph_service.plot_user_graph(user_id, "genres_over_time")
                 except Exception as e:
                     print("❌ Error while plotting graph:", repr(e))
             case "x":
@@ -144,7 +163,7 @@ def user_menu(genflix, user_id):
             case _:
                 print("❌ Invali d option. Please try again.")
 
-def movie_menu(genflix, movie_title):
+def movie_menu(genflix_service:GenFlixService, movie_title: str)  -> None:
     while True:
         print("""
         ============================================================
@@ -161,16 +180,18 @@ def movie_menu(genflix, movie_title):
         user_choice = input("Choose an option: ").strip().lower()
         match user_choice:
             case "r":
-                recommendations_amount = get_rec_amount()
-                recommendation_list = genflix.recommend_similar_movies(movie_title, recommendations_amount)
+                try:
+                    recommendations_amount = get_rec_amount()
+                    recommendation_list = genflix_service.recommend_similar_movies(movie_title, recommendations_amount)
 
-                title = f"{recommendations_amount} Similar Movies for '{movie_title}'"
-                print_recommendations(title, recommendation_list)
+                    title = f"{recommendations_amount} Similar Movies for '{movie_title}'"
+                    print_recommendations(title, recommendation_list)
 
-                input("\nPress ENTER to continue...")
-                for i in range(len(recommendation_list)):
-                    print(f"{i + 1}. {recommendation_list[i]}")
-
+                    input("\nPress ENTER to continue...")
+                    for i in range(len(recommendation_list)):
+                        print(f"{i + 1}. {recommendation_list[i]}")
+                except Exception as e:
+                    print("❌ Error while getting recommendations:", repr(e))
             case "x":
                 print("Goodbye!")
                 break
@@ -189,7 +210,7 @@ def get_rec_amount():
         except ValueError:
             print("❌ Invalid input. Please enter an integer within the correct range.")
 
-def print_user_info(user):
+def print_user_info(user : User)  -> None:
     print(r"""
 ┌────────────────────────────────────────────────────────────┐
 │                         USER DETAILS                       │
@@ -217,7 +238,7 @@ def print_user_info(user):
 
     print("\n──────────────────────────────────────────────────────────────\n")
 
-def print_movie_info(movie):
+def print_movie_info(movie: Movie)  -> None:
     print(r"""
 ┌────────────────────────────────────────────────────────────┐
 │                         MOVIE DETAILS                      │
@@ -234,7 +255,7 @@ def print_movie_info(movie):
 
     print("\n──────────────────────────────────────────────────────────────\n")
 
-def print_recommendations(title, rec_list):
+def print_recommendations(title:str, rec_list: list[str])  -> None:
 
     # Determine final box width for PyCharm (looks best around 90)
     BOX_WIDTH = 90
