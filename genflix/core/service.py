@@ -66,8 +66,7 @@ class GenFlixService:
 
             if matches:
                 user = matches[0]
-                from menu import print_user_info
-                print_user_info(user)
+                self.print_user_info(user)
                 return user.user_id
 
             print("❌ No user found with that name or ID. Try again.")
