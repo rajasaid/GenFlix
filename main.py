@@ -1,5 +1,5 @@
 ## test and do the application of GenFlix
-from menu import initiate_genflix
+from genflix.ui.menu import initiate_genflix
 
 def main():
     initiate_genflix()

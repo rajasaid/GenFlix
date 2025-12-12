@@ -1,9 +1,9 @@
 # This is GraphGenerator.py Python file
 import matplotlib.pyplot as plt
 import seaborn as sns
-from User import User
+from ..models.user import User
 import pandas as pd
-from GraphGenerator import GraphGenerator
+from .ratings_graphs import GraphGenerator
 
 class UserGraphGenerator(GraphGenerator):
     def __init__(self, data_frame: pd.DataFrame, user: User) -> None:
