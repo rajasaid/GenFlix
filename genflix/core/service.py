@@ -1,6 +1,8 @@
 ## This is GenFlixService class Python file
 
-from GenFlix import GenFlix
+from .genflix import GenFlix
+from ..models.user import User
+from ..models.movie import Movie
 import numpy as np
 from scipy.cluster.vq import kmeans, vq, whiten
 import pandas as pd
@@ -33,8 +35,7 @@ class GenFlixService:
 
             if matches:
                 movie = matches[0]
-                from menu import print_movie_info
-                print_movie_info(movie)
+                self.print_movie_info(movie)
                 return movie.title
 
             print("❌ No movie found with that title. Please try again.")
@@ -49,8 +50,7 @@ class GenFlixService:
 
                 if 1 <= user_id <= len(self.genflix.users):
                     user = self.genflix.users[user_id - 1]
-                    from menu import print_user_info
-                    print_user_info(user)
+                    self.print_user_info(user)
                     return user_id
                 else:
                     print("❌ ID out of range, try again.")
@@ -168,3 +168,47 @@ class GenFlixService:
         )
         
         return recommended["movie_title"].tolist()
+    def print_user_info(self, user : User)  -> None:
+        print(r"""
+    ┌────────────────────────────────────────────────────────────┐
+    │                         USER DETAILS                       │
+    └────────────────────────────────────────────────────────────┘
+    """)
+
+        print(f"  ID:          {user.user_id}")
+        print(f"  Name:        {user.name}")
+        print(f"  Age:         {user.age}")
+
+        print("\n  Preferences:")
+        print("  ------------")
+        for genre in user.preferences:
+            print(f"   • {genre}")
+
+        print("\n  Watch History:")
+        print("  --------------")
+        if not user.watch_history:
+            print("   (no movies watched yet)")
+        else:
+            for entry in user.watch_history:
+                movie_title = entry["movie"]
+                rating = entry["rating"]
+                print(f"   • {movie_title} — rated {rating}/5")
+
+        print("\n──────────────────────────────────────────────────────────────\n")
+
+    def print_movie_info(self, movie: Movie)  -> None:
+        print(r"""
+    ┌────────────────────────────────────────────────────────────┐
+    │                         MOVIE DETAILS                      │
+    └────────────────────────────────────────────────────────────┘
+    """)
+
+        print(f"  Title:       {movie.title}")
+        print(f"  Year:        {movie.year}")
+
+        print("\n  Genres:")
+        print("  --------")
+        for genre in movie.genres:
+            print(f"   • {genre}")
+
+        print("\n──────────────────────────────────────────────────────────────\n")

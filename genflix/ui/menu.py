@@ -1,9 +1,9 @@
-from GenFlix import GenFlix
-from GenFlixService import GenFlixService
-from User import User
-from Movie import Movie
-from GraphGenerator import GraphGenerator
-from UserGraphGenerator import UserGraphGenerator
+from ..core.service import GenFlix
+from ..core.service import GenFlixService
+from ..models.user import User
+from ..models.movie import Movie
+from ..plotting.ratings_graphs import GraphGenerator
+from ..plotting.user_graphs import UserGraphGenerator
 
 
 MIN_MOVIES = 100
@@ -210,50 +210,7 @@ def get_rec_amount():
         except ValueError:
             print("❌ Invalid input. Please enter an integer within the correct range.")
 
-def print_user_info(user : User)  -> None:
-    print(r"""
-┌────────────────────────────────────────────────────────────┐
-│                         USER DETAILS                       │
-└────────────────────────────────────────────────────────────┘
-""")
 
-    print(f"  ID:          {user.user_id}")
-    print(f"  Name:        {user.name}")
-    print(f"  Age:         {user.age}")
-
-    print("\n  Preferences:")
-    print("  ------------")
-    for genre in user.preferences:
-        print(f"   • {genre}")
-
-    print("\n  Watch History:")
-    print("  --------------")
-    if not user.watch_history:
-        print("   (no movies watched yet)")
-    else:
-        for entry in user.watch_history:
-            movie_title = entry["movie"]
-            rating = entry["rating"]
-            print(f"   • {movie_title} — rated {rating}/5")
-
-    print("\n──────────────────────────────────────────────────────────────\n")
-
-def print_movie_info(movie: Movie)  -> None:
-    print(r"""
-┌────────────────────────────────────────────────────────────┐
-│                         MOVIE DETAILS                      │
-└────────────────────────────────────────────────────────────┘
-""")
-
-    print(f"  Title:       {movie.title}")
-    print(f"  Year:        {movie.year}")
-
-    print("\n  Genres:")
-    print("  --------")
-    for genre in movie.genres:
-        print(f"   • {genre}")
-
-    print("\n──────────────────────────────────────────────────────────────\n")
 
 def print_recommendations(title:str, rec_list: list[str])  -> None:
 

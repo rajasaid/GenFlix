@@ -1,9 +1,9 @@
 ## Class GenFlix Python File
 import random 
 from faker import Faker
-from User import User
-from Movie import Movie
-from Rating import Rating
+from ..models.user import User
+from ..models.movie import Movie
+from ..models.rating import Rating
 import pandas as pd
 from dataclasses import dataclass, field
 

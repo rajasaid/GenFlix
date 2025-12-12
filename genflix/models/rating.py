@@ -1,7 +1,7 @@
 # Rating class Python file
 from dataclasses import dataclass, field
-from User import User
-from Movie import Movie
+from ..models.user import User
+from ..models.movie import Movie
 import datetime
 
 @dataclass
